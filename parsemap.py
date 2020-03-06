@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, subprocess
+import sys, subprocess, argparse, lzma
 from typing import *
 
 import linkmap, hackyelf
@@ -29,7 +29,7 @@ def mem2off(elf: ELF, memaddr: int) -> Optional[int]:
 
     return None
 
-def mkst(elf: ELF, mmap: Sequence[MMap]) -> Sequence[SymOff]:
+def mkst(recs: Dict[str, str], elf: ELF, mmap: Sequence[MMap], pfix="") -> Sequence[SymOff]:
     lll = []
     for x in mmap:
         off = mem2off(elf, x.org)
@@ -38,7 +38,18 @@ def mkst(elf: ELF, mmap: Sequence[MMap]) -> Sequence[SymOff]:
             #print("W: sym %s$%s @ 0x%x not found!" % (x.sect, x.sym, x.org))
             continue
 
-        lll.append(SymOff(x.sym, abs(off), off < 0))
+        if x.sym in recs:
+            elf2 = hackyelf.parse(elf.data[abs(off):])
+            mmap2 = None
+            with open(recs[x.sym], 'r') as rcsm:
+                mmap2 = linkmap.parse(rcsm.read()).mmap
+
+            for y in mkst(recs, elf2, mmap2, x.sym+' -> '):
+                lll.append(SymOff(pfix+y.sym, abs(off)+y.off, \
+                                  off<0 or y.off<0))
+        else:
+            xn = x.sym if x.sym != '.' else (x.sect or ("[0x%08x]"%x.org))
+            lll.append(SymOff(pfix+xn, abs(off), off < 0))
 
     return sorted(lll, key=lambda s: s.off)
 
@@ -61,45 +72,57 @@ def weightsyms(symtab: Sequence[SymOff], weights: Sequence[float]):
 
     if start < len(weights):
         lll.append(SymWeight(symtab[curs], totalw, start, len(weights)-start, totalw/(len(weights)-start)))
-    return sorted(lll, key=lambda x: x.wwgt, reverse=True)
+    return sorted(lll, key=lambda x: x.wgt, reverse=True)
 
-def main(argv):
-    if len(argv) < 4:
-        print("""Usage: TODO""")
-        return 1
+def splitr(s):
+    assert '=' in s, "Bad --recurse format %s, see --help" % repr(s)
 
-    lzma = argv[1]
-    elfn = argv[2]
-    lmap = argv[3]
+    i = s.index('=')
+    return s[:i], s[i+1:]
+
+def main(opts):
+    recs = dict([splitr(s) for s in (opts.recurse or [])])
 
     weights = [float(x.strip()) for x in \
-               subprocess.check_output(['./LzmaSpec', lzma]) \
+               subprocess.check_output([opts.lzmaspec, "--raw", opts.lzma_file]) \
                     .decode('utf-8').split('\n') \
                if len(x) > 0]
 
-    elfb = open(elfn, 'rb').read()
-    maps = open(lmap, 'r' ).read()
+    elfb = None
+    with lzma.open(opts.lzma_file, 'rb') as lf: elfb = lf.read()
+
+    maps = opts.map_file.read()
     elf  = hackyelf.parse(elfb)
     mmap = linkmap.parse(maps).mmap
 
-    symtab = mkst(elf, mmap)
+    symtab = mkst(recs, elf, mmap)
 
-    #print(weights)
-    #print('\n'.join(str(x) for x in mmap))
-    #print(repr(elf))
-    #print('\n'.join(repr(x) for x in symtab))
-
-    assert len(weights) == len(elfb), "LZMA compressed file doesn't belong to the given ELF!"
-
-    print("Symbol                  \tU. Size\t\tPerplexity\tPerplexity/Size")
+    print("Symbol                    Uncompr. Size\t\tPerplexity\tPerplexity/Size")
     print("-"*79)
     for x in weightsyms(symtab, weights):
         symn = x.sof.sym
-        symn = symn + (' ' * (24 - len(symn)))[:24]
-        print("%s\t%7d\t\t%10.2f\t%15.2f" % (symn, x.dsize, x.wgt, x.wwgt))
-    #print('\n'.join(repr(x) for x in weightsyms(symtab, weights)))
+        symn = (symn + ' ' * (34 - len(symn)))[:34] # 34 is good enough
+        print("%s%5d\t\t%10.2f\t%15.2f" % (symn, x.dsize, x.wgt, x.wwgt))
 
     return 0
 
-exit(main(sys.argv))
+if __name__ == '__main__':
+    p = argparse.ArgumentParser(description="""\
+Shows a summary of the compression stats of every symbol in an ELF,
+given the compressed and uncompressed ELF files, as well as a linker
+map file. (`ld -Map', `cc -Wl,-Map', see respective manpages.)
+""")
+
+    p.add_argument("lzma_file", type=str, \
+                   help="The LZMA-compressed ELF file")
+    p.add_argument("map_file", type=argparse.FileType('r'), \
+                   help="The linker map file")
+
+    p.add_argument("--recurse", action='append', help="Recursively analyse "+\
+                   "data in symbols. Syntax: --recurse symname=linker.map")
+
+    p.add_argument("--lzmaspec", type=str, default="./LzmaSpec", \
+                   help="LzmaSpec binary to use (default: ./LzmaSpec)")
+
+    exit(main(p.parse_args(sys.argv[1:])))
 

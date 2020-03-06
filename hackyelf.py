@@ -36,7 +36,7 @@ class Dyn(NamedTuple):
     val: int
 
 class ELF(NamedTuple):
-    #data  : bytes
+    data  : bytes
     ident : bytes
     eclass: int
     mach  : int
@@ -86,7 +86,7 @@ def parse_32(data: bytes) -> ELF:
             dyn = parse_dyn32(data, p)
             break
 
-    return ELF(ident, eclass, mach, phdrs, dyn)
+    return ELF(data, ident, eclass, mach, phdrs, dyn)
 
 def parse_phdr64(data: bytes, phoff:int, phentsz:int, phnum:int) -> Sequence[Phdr]:
     ps = []
@@ -129,7 +129,7 @@ def parse_64(data: bytes) -> ELF:
             dyn = parse_dyn64(data, p)
             break
 
-    return ELF(ident, eclass, mach, phdrs, dyn)
+    return ELF(data, ident, eclass, mach, phdrs, dyn)
 
 def parse(data: bytes) -> ELF:
     assert data[:4] == b'\x7FELF', "Not a valid ELF file" # good enough
@@ -137,5 +137,10 @@ def parse(data: bytes) -> ELF:
     ecls  = data[4]
     if ecls == ELFCLASS32: return parse_32(data)
     elif ecls == ELFCLASS64: return parse_64(data)
-    else: assert False, "bad E_CLASS %d" % ecls
+    else:
+        emch = unpack('<H', data[18:18+2])[0]
+        if emch == EM_386: return parse_32(data)
+        elif emch == EM_X86_64: return parse_64(data)
+
+        assert False, "bad E_CLASS %d" % ecls
 

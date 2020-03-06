@@ -61,9 +61,10 @@ def parse_mmap(ls: Sequence[str]) -> Sequence[MMap]:
             section = w[0]
             del w[0]
 
-        if len(w) == 0:
+        if len(w) == 0 or w[0] == "[!provide]":
             continue # addr placed on next line for prettyprinting reasons
 
+        #print(repr(l), w[0])
         assert w[0].startswith("0x"), "welp, bad symbol addr"
 
         addr = int(w[0], 16)

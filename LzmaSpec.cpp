@@ -6,10 +6,14 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 #include <iostream>
 #include <iomanip>
 #include <vector>
 #include <algorithm>
+#ifndef _MSC_VER
+#include <unistd.h>
+#endif
 #include "realcolor.hpp"
 
 #ifdef _MSC_VER
@@ -681,15 +685,36 @@ public:
   }
 };
 
+static void usage(char** argv) {
+  std::cerr << "usage: " << argv[0] << " file.lzma" << std::endl;
+}
+
 int main(int argc, char** argv)
 {
-  if (argc != 2) {
-    std::cerr << "usage: " << argv[0] << " file.lzma" << std::endl;
-    return -1;
+#ifdef _MSC_VER
+  bool pretty = true;
+#else
+  bool pretty = isatty(STDOUT_FILENO);
+#endif
+
+  if (argc < 2) {
+    usage(argv);
+    return 1;
+  }
+
+  int fileargind = 1;
+  if (!strcmp(argv[fileargind], "--raw")) {
+    fileargind++;
+    pretty = false;
+  }
+
+  if (!strcmp(argv[fileargind], "--help")) {
+    usage(argv);
+    return 0;
   }
 
   CInputStream inStream;
-  inStream.File = fopen(argv[1], "rb");
+  inStream.File = fopen(argv[fileargind], "rb");
   inStream.Init();
   if (inStream.File == 0)
     throw "Can't open input file";
@@ -718,7 +743,7 @@ int main(int argc, char** argv)
   lzmaDecoder.RangeDec.InStream = &inStream;
 
   lzmaDecoder.Create();
-  
+
   int res = lzmaDecoder.Decode(unpackSizeDefined, unpackSize);
 
   if (res == LZMA_RES_ERROR)
@@ -738,7 +763,11 @@ int main(int argc, char** argv)
   float maxForCol = 0;
   float avgForCol = 0;
   for (int j = 0; j < lzmaDecoder.OutWindow.OutStream.Data.size(); j++) {
-    /*if (j % colWidth == 0 && (j / colWidth)%scaleFreq == 0) {
+    if (!pretty) {
+      std::cout << lzmaDecoder.Perplexities[j]/maxPerplexity << std::endl;
+      continue;
+    }
+    if (j % colWidth == 0 && (j / colWidth)%scaleFreq == 0) {
       std::cout << grad.printScale(colWidth) << std::endl;
     }
     float heat = sqrt(lzmaDecoder.Perplexities[j]/maxPerplexity);
@@ -770,8 +799,7 @@ int main(int argc, char** argv)
       minForCol = 1;
       maxForCol = 0;
       avgForCol = 0;
-    }*/
-    std::cout << lzmaDecoder.Perplexities[j]/maxPerplexity << std::endl;
+    }
   }
   std::cout << std::endl;
 
