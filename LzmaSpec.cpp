@@ -622,6 +622,14 @@ public:
     color.push_back(ColorPoint(1, 1, 0,   0.75f));     // Yellow.
     color.push_back(ColorPoint(1, 0, 0,   1.0f));      // Red.
   }
+  void createViridisHeatMapGradient()
+  {
+    color.clear();
+    color.push_back(ColorPoint(0x44/255.f,0x02/255.f,0x55/255.f,   0.0f));
+    color.push_back(ColorPoint(0x2C/255.f,0x70/255.f,0x8E/255.f,   0.33f));
+    color.push_back(ColorPoint(0x3D/255.f,0xBB/255.f,0x74/255.f,   0.66f));
+    color.push_back(ColorPoint(0xFA/255.f,0xE6/255.f,0x22/255.f,   1.f));
+  }
   
   //-- Inputs a (value) between 0 and 1 and outputs the (red), (green) and (blue)
   //-- values representing that position in the gradient.
@@ -722,7 +730,7 @@ int main(int argc, char** argv)
   }
 
   ColorGradient grad;
-  grad.createDefaultHeatMapGradient();
+  grad.createViridisHeatMapGradient();
   double maxPerplexity = *std::max_element(lzmaDecoder.Perplexities.begin(), lzmaDecoder.Perplexities.end());
   int colWidth = 64;
   int scaleFreq = 16;
