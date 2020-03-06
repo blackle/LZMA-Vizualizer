@@ -738,7 +738,7 @@ int main(int argc, char** argv)
   float maxForCol = 0;
   float avgForCol = 0;
   for (int j = 0; j < lzmaDecoder.OutWindow.OutStream.Data.size(); j++) {
-    if (j % colWidth == 0 && (j / colWidth)%scaleFreq == 0) {
+    /*if (j % colWidth == 0 && (j / colWidth)%scaleFreq == 0) {
       std::cout << grad.printScale(colWidth) << std::endl;
     }
     float heat = sqrt(lzmaDecoder.Perplexities[j]/maxPerplexity);
@@ -770,7 +770,8 @@ int main(int argc, char** argv)
       minForCol = 1;
       maxForCol = 0;
       avgForCol = 0;
-    }
+    }*/
+    std::cout << lzmaDecoder.Perplexities[j]/maxPerplexity << std::endl;
   }
   std::cout << std::endl;
 

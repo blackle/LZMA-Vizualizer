@@ -2,6 +2,8 @@
 
 import sys, subprocess
 
+import linkmap
+
 if len(sys.argv) < 4:
     print("""Usage: TODO""")
     exit(1)
@@ -15,4 +17,6 @@ weights = [float(x.strip()) for x in \
                 .decode('utf-8').split('\n') \
            if len(x) > 0]
 
-print(weights)
+#print(weights)
+print('\n'.join(str(x) for x in linkmap.parse(open(lmap, 'r').read()).mmap))
+
