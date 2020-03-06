@@ -1,6 +1,5 @@
 
 import re
-
 from typing import *
 
 class CommonSym(NamedTuple):
@@ -13,11 +12,11 @@ class Discard(NamedTuple):
     file: str
 class MemCfg(NamedTuple):
     name: str
-    orig: int
+    org : int
     size: int
 class MMap(NamedTuple):
     sect: str
-    orig: int
+    org : int
     #size: int
     sym : str
     file: str
