@@ -621,10 +621,10 @@ public:
   {
     color.clear();
     color.push_back(ColorPoint(0, 0, 0,   0.0f));      // Blue.
-    color.push_back(ColorPoint(0, 0, 1,   0.25f));     // Cyan.
+    color.push_back(ColorPoint(0, 0, 1,   0.2f));     // Cyan.
     color.push_back(ColorPoint(0, 1, 0,   0.5f));      // Green.
-    color.push_back(ColorPoint(1, 1, 0,   0.75f));     // Yellow.
-    color.push_back(ColorPoint(1, 0, 0,   1.0f));      // Red.
+    color.push_back(ColorPoint(1, 1, 0,   0.7f));     // Yellow.
+    color.push_back(ColorPoint(1, 0, 0,   0.9f));      // Red.
   }
   void createViridisHeatMapGradient()
   {
@@ -686,7 +686,7 @@ public:
 };
 
 static void usage(char** argv) {
-  std::cerr << "usage: " << argv[0] << " file.lzma" << std::endl;
+  std::cerr << "usage: " << argv[0] << " [--raw] [--jet] [--help] file.lzma" << std::endl;
 }
 
 int main(int argc, char** argv)
@@ -696,6 +696,7 @@ int main(int argc, char** argv)
 #else
   bool pretty = isatty(STDOUT_FILENO);
 #endif
+  bool jet = false;
 
   if (argc < 2) {
     usage(argv);
@@ -706,6 +707,11 @@ int main(int argc, char** argv)
   if (!strcmp(argv[fileargind], "--raw")) {
     fileargind++;
     pretty = false;
+  }
+
+  if (!strcmp(argv[fileargind], "--jet")) {
+    fileargind++;
+    jet = true;
   }
 
   if (!strcmp(argv[fileargind], "--help")) {
@@ -755,7 +761,11 @@ int main(int argc, char** argv)
   }
 
   ColorGradient grad;
-  grad.createViridisHeatMapGradient();
+  if (jet) {
+    grad.createDefaultHeatMapGradient();
+  } else {
+    grad.createViridisHeatMapGradient();
+  }
   double maxPerplexity = *std::max_element(lzmaDecoder.Perplexities.begin(), lzmaDecoder.Perplexities.end());
   int colWidth = 64;
   int scaleFreq = 16;
