@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstdio>
 #include <functional>
+#include <sstream>
 
 namespace realcolor
 {
