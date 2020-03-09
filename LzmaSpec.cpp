@@ -330,6 +330,7 @@ public:
   CRangeDecoder RangeDec;
   COutWindow OutWindow;
   std::vector<float> Perplexities;
+  std::vector<bool> Literals;
 
   bool markerIsMandatory;
   unsigned lc, pb, lp;
@@ -507,6 +508,7 @@ int CLzmaDecoder::Decode(bool unpackSizeDefined, UInt64 unpackSize)
         return LZMA_RES_ERROR;
       DecodeLiteral(state, rep0);
       PushPerplexities(1);
+      Literals.push_back(true);
       state = UpdateState_Literal(state);
       unpackSize--;
       continue;
@@ -527,6 +529,7 @@ int CLzmaDecoder::Decode(bool unpackSizeDefined, UInt64 unpackSize)
           state = UpdateState_ShortRep(state);
           OutWindow.PutByte(OutWindow.GetByte(rep0 + 1));
           PushPerplexities(1);
+          Literals.push_back(false);
           unpackSize--;
           continue;
         }
@@ -579,6 +582,7 @@ int CLzmaDecoder::Decode(bool unpackSizeDefined, UInt64 unpackSize)
       isError = true;
     }
     OutWindow.CopyMatch(rep0 + 1, len);
+    Literals.insert(Literals.end(), len, false);
     PushPerplexities(len);
     unpackSize -= len;
     if (isError)
@@ -697,6 +701,7 @@ int main(int argc, char** argv)
   bool pretty = isatty(STDOUT_FILENO);
 #endif
   bool jet = false;
+  bool literals = false;
 
   if (argc < 2) {
     usage(argv);
@@ -712,6 +717,11 @@ int main(int argc, char** argv)
   if (!strcmp(argv[fileargind], "--jet")) {
     fileargind++;
     jet = true;
+  }
+
+  if (!strcmp(argv[fileargind], "--lits")) {
+    fileargind++;
+    literals = true;
   }
 
   if (!strcmp(argv[fileargind], "--help")) {
@@ -780,10 +790,12 @@ int main(int argc, char** argv)
     if (j % colWidth == 0 && (j / colWidth)%scaleFreq == 0) {
       std::cout << grad.printScale(colWidth) << std::endl;
     }
+    bool literal = lzmaDecoder.Literals[j];
     float heat = sqrt(lzmaDecoder.Perplexities[j]/maxPerplexity);
     avgForCol += heat;
     maxForCol = std::max(maxForCol, heat);
     minForCol = std::min(minForCol, heat);
+    if (literals) heat = literal ? 1. : 0.;
 
     char byte = lzmaDecoder.OutWindow.OutStream.Data[j];
     if (!std::isprint(byte)) {
