@@ -24,6 +24,10 @@ class XRef(NamedTuple):
     name: str
     deff: str
     reff: Sequence[str]
+class AsNeeded(NamedTuple):
+    name: str
+    obj: str
+    sym: str
 
 class LinkMap(NamedTuple):
     common : Sequence[CommonSym]
@@ -31,11 +35,13 @@ class LinkMap(NamedTuple):
     memcfg : Sequence[MemCfg]
     mmap   : Sequence[MMap]
     xref   : Sequence[XRef]
+    asneeded:Sequence[AsNeeded]
 
 def parse_common( ls: Sequence[str]) -> Sequence[CommonSym]: return [] # TODO
 def parse_discard(ls: Sequence[str]) -> Sequence[Discard  ]: return [] # TODO
 def parse_memcfg( ls: Sequence[str]) -> Sequence[MemCfg   ]: return [] # TODO
 def parse_xref(   ls: Sequence[str]) -> Sequence[XRef     ]: return [] # TODO
+def parse_asneed( ls: Sequence[str]) -> Sequence[AsNeeded ]: return [] # TODO
 
 def parse_mmap(ls: Sequence[str]) -> Sequence[MMap]:
     rrr = []
@@ -52,7 +58,8 @@ def parse_mmap(ls: Sequence[str]) -> Sequence[MMap]:
         #print(repr(l))
         s = l.strip(); w = s.split()
 
-        if s.startswith('LOAD ') or s.startswith('OUTPUT('): continue#break
+        if s.startswith('LOAD ') or s.startswith('OUTPUT(') or \
+                s == 'START GROUP' or s == 'END GROUP': continue#break
 
         if l[0] != ' ':
             bigsect = w[0]
@@ -87,10 +94,11 @@ def parse(s: str) -> LinkMap:
     MEMCFG  = 2
     MMAP    = 3
     XREF    = 4
+    ASNEED  = 5
 
     curpt = -1
 
-    commonl, discardl, memcfgl, mmapl, xrefl = [], [], [], [], []
+    commonl, discardl, memcfgl, mmapl, xrefl, asneedl = [], [], [], [], [], []
 
     for l in s.split('\n'):
         if len(l.strip()) == 0: continue
@@ -101,14 +109,17 @@ def parse(s: str) -> LinkMap:
         elif ls == "Memory Configuration": curpt = MEMCFG
         elif ls == "Linker script and memory map": curpt = MMAP
         elif ls == 'Cross Reference Table': curpt = XREF
+        elif ls == "As-needed library included to satisfy reference by file (symbol)": curpt = ASNEED
         elif curpt == COMMON :  commonl.append(l)
         elif curpt == DISCARD: discardl.append(l)
         elif curpt == MEMCFG :  memcfgl.append(l)
         elif curpt == MMAP   :    mmapl.append(l)
         elif curpt == XREF   :    xrefl.append(l)
+        elif curpt == ASNEED :  asneedl.append(l)
         else:
             assert False, "bad line %s" % ls
 
     return LinkMap(parse_common(commonl), parse_discard(discardl), \
-                   parse_memcfg(memcfgl), parse_mmap(mmapl), parse_xref(xrefl))
+                   parse_memcfg(memcfgl), parse_mmap(mmapl), parse_xref(xrefl),\
+                   parse_asneed(asneedl))
 
