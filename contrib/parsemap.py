@@ -99,11 +99,17 @@ def main(opts):
 
     print("Symbol                    Uncompr. Size\t\tPerplexity\tPerplexity/Size")
     print("-"*79)
+    totals, totalw, totalww = 0,0,0
     for x in weightsyms(symtab, weights):
         symn = x.sof.sym
         symn = (symn + ' ' * (34 - len(symn)))[:34] # 34 is good enough
         print("%s%5d\t\t%10.2f\t%15.2f" % (symn, x.dsize, x.wgt, x.wwgt))
-
+        totals += x.dsize
+        totalw += x.wgt
+        totalww+= x.wwgt
+    print("-"*79)
+    print("Total:%33d\t\t%10.2f\t%14.1f%%" % (totals, totalw, 100*totalw/totals))
+ 
     return 0
 
 if __name__ == '__main__':
