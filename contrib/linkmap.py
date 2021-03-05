@@ -117,6 +117,7 @@ def parse(s: str) -> LinkMap:
         elif ls == "Memory Configuration": curpt = MEMCFG
         elif ls == "Linker script and memory map": curpt = MMAP
         elif ls == "Cross Reference Table": curpt = XREF
+        elif ls == "As-needed library included to satisfy reference by file (symbol)": curpt = ARIMP
         elif ls == "Archive member included to satisfy reference by file (symbol)": curpt = ARIMP
         elif curpt == COMMON :  commonl.append(l)
         elif curpt == DISCARD: discardl.append(l)
